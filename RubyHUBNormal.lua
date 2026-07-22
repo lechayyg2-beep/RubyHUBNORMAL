@@ -271,7 +271,6 @@ Movement:CreateToggle({
 -- ================================================
 Visuals:CreateSection("👁️ ESP & Visuals")
 
--- ESP
 local espObjects = {}
 local espEnabled = false
 local espConnections = {}
@@ -453,3 +452,74 @@ Settings:CreateButton({
 })
 
 Settings:CreateLabel("✨ Ruby HUB v1.0\n👤 Developer: lechayy\n⚡ Powered by Rayfield")
+
+-- ================================================
+-- ВОССТАНОВЛЕНИЕ ПОСЛЕ СМЕРТИ
+-- ================================================
+local player = game.Players.LocalPlayer
+
+player.CharacterAdded:Connect(function(char)
+    task.wait(0.5)
+
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return end
+
+    -- 1. Восстановить Walk Speed
+    local walkSpeed = Rayfield:GetFlag("WalkSpeed") or 16
+    humanoid.WalkSpeed = walkSpeed
+
+    -- 2. Восстановить Jump Power
+    local jumpPower = Rayfield:GetFlag("JumpPower") or 50
+    humanoid.JumpPower = jumpPower
+
+    -- 3. Восстановить Fly (если был включён)
+    if Rayfield:GetFlag("FlyMode") then
+        flyEnabled = true
+        startFly()
+    end
+
+    -- 4. Восстановить NoClip (если был включён)
+    if Rayfield:GetFlag("NoClip") then
+        -- Пересоздаём обработчик
+        if _G.NoClipConnection then
+            _G.NoClipConnection:Disconnect()
+            _G.NoClipConnection = nil
+        end
+        _G.NoClipConnection = game:GetService("RunService").Stepped:Connect(function()
+            if not Rayfield:GetFlag("NoClip") then return end
+            local char = player.Character
+            if char then
+                for _, part in ipairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                    end
+                end
+            end
+        end)
+        -- Применить к текущему персонажу
+        for _, part in ipairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    end
+
+    -- 5. Восстановить Infinite Jump (если был включён)
+    if Rayfield:GetFlag("InfJump") then
+        if _G.InfJumpConnection then
+            _G.InfJumpConnection:Disconnect()
+            _G.InfJumpConnection = nil
+        end
+        local canJump = true
+        local jumpCooldown = 0.3
+        local function onJumpRequest()
+            if canJump then
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                canJump = false
+                task.wait(jumpCooldown)
+                canJump = true
+            end
+        end
+        _G.InfJumpConnection = game:GetService("UserInputService").JumpRequest:Connect(onJumpRequest)
+    end
+end)

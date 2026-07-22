@@ -454,7 +454,7 @@ Settings:CreateButton({
 Settings:CreateLabel("✨ Ruby HUB v1.0\n👤 Developer: lechayy\n⚡ Powered by Rayfield")
 
 -- ================================================
--- ВОССТАНОВЛЕНИЕ ПОСЛЕ СМЕРТИ
+-- ВОССТАНОВЛЕНИЕ ПОСЛЕ СМЕРТИ (исправлено)
 -- ================================================
 local player = game.Players.LocalPlayer
 
@@ -464,23 +464,23 @@ player.CharacterAdded:Connect(function(char)
     local humanoid = char:FindFirstChildOfClass("Humanoid")
     if not humanoid then return end
 
-    -- 1. Восстановить Walk Speed
+    -- 1. Сначала отключаем старые соединения для полёта
+    stopFly()
+
+    -- 2. Восстанавливаем Walk Speed и Jump Power
     local walkSpeed = Rayfield:GetFlag("WalkSpeed") or 16
     humanoid.WalkSpeed = walkSpeed
-
-    -- 2. Восстановить Jump Power
     local jumpPower = Rayfield:GetFlag("JumpPower") or 50
     humanoid.JumpPower = jumpPower
 
-    -- 3. Восстановить Fly (если был включён)
+    -- 3. Восстанавливаем Fly (если был включён)
     if Rayfield:GetFlag("FlyMode") then
         flyEnabled = true
         startFly()
     end
 
-    -- 4. Восстановить NoClip (если был включён)
+    -- 4. Восстанавливаем NoClip (если был включён)
     if Rayfield:GetFlag("NoClip") then
-        -- Пересоздаём обработчик
         if _G.NoClipConnection then
             _G.NoClipConnection:Disconnect()
             _G.NoClipConnection = nil
@@ -496,7 +496,6 @@ player.CharacterAdded:Connect(function(char)
                 end
             end
         end)
-        -- Применить к текущему персонажу
         for _, part in ipairs(char:GetDescendants()) do
             if part:IsA("BasePart") then
                 part.CanCollide = false
@@ -504,7 +503,7 @@ player.CharacterAdded:Connect(function(char)
         end
     end
 
-    -- 5. Восстановить Infinite Jump (если был включён)
+    -- 5. Восстанавливаем Infinite Jump (если был включён)
     if Rayfield:GetFlag("InfJump") then
         if _G.InfJumpConnection then
             _G.InfJumpConnection:Disconnect()

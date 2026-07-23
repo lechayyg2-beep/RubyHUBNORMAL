@@ -1,10 +1,14 @@
+-- ============================================================
+-- RUBY HUB v2.0 (без print и лишних сообщений)
+-- ============================================================
+
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
    Name = "✨ Ruby HUB",
    Icon = 0,
    LoadingTitle = "Ruby HUB",
-   LoadingSubtitle = "by lechayy",
+   LoadingSubtitle = "by RubyReal",
    ShowText = "Ruby",
    Theme = "Default",
    ToggleUIKeybind = "K",
@@ -37,9 +41,17 @@ local Visuals = Window:CreateTab("👁️ Visuals", 4483362458)
 local Utility = Window:CreateTab("🛡️ Utility", 4483362458)
 local Settings = Window:CreateTab("⚙️ Settings", 4483362458)
 
--- ================================================
--- MOVEMENT
--- ================================================
+-- ============================================================
+-- ГЛОБАЛЬНЫЕ ДАННЫЕ
+-- ============================================================
+local player = game.Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
+local mouse = player:GetMouse()
+
+-- ============================================================
+-- 1. MOVEMENT (полёт, скорость, прыжок, гравитация, ноклип, бесконечный прыжок)
+-- ============================================================
 Movement:CreateSection("✈️ Flight")
 
 local flyEnabled = false
@@ -47,8 +59,7 @@ local flyMaxSpeed = 50
 local flyBodyGyro, flyBodyVelocity, flyConnection
 
 local function startFly()
-    local plr = game.Players.LocalPlayer
-    local char = plr.Character
+    local char = player.Character
     if not char then return end
     local humanoid = char:FindFirstChildOfClass("Humanoid")
     if not humanoid then return end
@@ -73,25 +84,24 @@ local function startFly()
 
     humanoid.PlatformStand = true
 
-    flyConnection = game:GetService("RunService").RenderStepped:Connect(function()
+    flyConnection = RunService.RenderStepped:Connect(function()
         if not flyEnabled then return end
-        local uis = game:GetService("UserInputService")
-        local f = uis:IsKeyDown(Enum.KeyCode.W) and 1 or 0
-        local b = uis:IsKeyDown(Enum.KeyCode.S) and 1 or 0
-        local l = uis:IsKeyDown(Enum.KeyCode.A) and 1 or 0
-        local r = uis:IsKeyDown(Enum.KeyCode.D) and 1 or 0
+        local f = UIS:IsKeyDown(Enum.KeyCode.W) and 1 or 0
+        local b = UIS:IsKeyDown(Enum.KeyCode.S) and 1 or 0
+        local l = UIS:IsKeyDown(Enum.KeyCode.A) and 1 or 0
+        local r = UIS:IsKeyDown(Enum.KeyCode.D) and 1 or 0
 
         local forward = (f - b) * flyMaxSpeed
         local right = (r - l) * flyMaxSpeed
         local up = 0
-        if uis:IsKeyDown(Enum.KeyCode.Space) then up = flyMaxSpeed end
-        if uis:IsKeyDown(Enum.KeyCode.LeftShift) then up = -flyMaxSpeed end
+        if UIS:IsKeyDown(Enum.KeyCode.Space) then up = flyMaxSpeed end
+        if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then up = -flyMaxSpeed end
 
         local cam = workspace.CurrentCamera
         local vel = cam.CFrame.LookVector * forward + cam.CFrame.RightVector * right + Vector3.new(0, up, 0)
         if vel.Magnitude > flyMaxSpeed then vel = vel.Unit * flyMaxSpeed end
-        flyBodyVelocity.velocity = vel
-        flyBodyGyro.cframe = cam.CFrame
+        if flyBodyVelocity then flyBodyVelocity.velocity = vel end
+        if flyBodyGyro then flyBodyGyro.cframe = cam.CFrame end
     end)
 end
 
@@ -101,8 +111,7 @@ local function stopFly()
     if flyBodyGyro then flyBodyGyro:Destroy() flyBodyGyro = nil end
     if flyBodyVelocity then flyBodyVelocity:Destroy() flyBodyVelocity = nil end
 
-    local plr = game.Players.LocalPlayer
-    local char = plr.Character
+    local char = player.Character
     if char then
         local humanoid = char:FindFirstChildOfClass("Humanoid")
         if humanoid then
@@ -136,10 +145,11 @@ Movement:CreateSlider({
     Callback = function(Value) flyMaxSpeed = Value end,
 })
 
-Movement:CreateSection("🏃 Speed & Jump")
+Movement:CreateSection("🏃 Speed, Jump & Gravity")
 
 local walkSpeedValue = 16
 local jumpPowerValue = 50
+local gravityValue = 196.2
 local antiCheatConnection
 
 Movement:CreateSlider({
@@ -151,14 +161,12 @@ Movement:CreateSlider({
     Flag = "WalkSpeed",
     Callback = function(Value)
         walkSpeedValue = Value
-        local player = game.Players.LocalPlayer
         local char = player.Character
         if char and char:FindFirstChild("Humanoid") then
             char.Humanoid.WalkSpeed = Value
         end
         if not antiCheatConnection then
-            antiCheatConnection = game:GetService("RunService").RenderStepped:Connect(function()
-                local player = game.Players.LocalPlayer
+            antiCheatConnection = RunService.RenderStepped:Connect(function()
                 local char = player.Character
                 if char and char:FindFirstChild("Humanoid") and char.Humanoid.WalkSpeed ~= walkSpeedValue then
                     char.Humanoid.WalkSpeed = walkSpeedValue
@@ -177,14 +185,12 @@ Movement:CreateSlider({
     Flag = "JumpPower",
     Callback = function(Value)
         jumpPowerValue = Value
-        local player = game.Players.LocalPlayer
         local char = player.Character
         if char and char:FindFirstChild("Humanoid") then
             char.Humanoid.JumpPower = Value
         end
         if not antiCheatConnection then
-            antiCheatConnection = game:GetService("RunService").RenderStepped:Connect(function()
-                local player = game.Players.LocalPlayer
+            antiCheatConnection = RunService.RenderStepped:Connect(function()
                 local char = player.Character
                 if char and char:FindFirstChild("Humanoid") and char.Humanoid.JumpPower ~= jumpPowerValue then
                     char.Humanoid.JumpPower = jumpPowerValue
@@ -194,14 +200,26 @@ Movement:CreateSlider({
     end,
 })
 
+Movement:CreateSlider({
+    Name = "🌍 Gravity",
+    Range = {0, 500},
+    Increment = 1,
+    Suffix = " stud/s²",
+    CurrentValue = 196.2,
+    Flag = "Gravity",
+    Callback = function(Value)
+        gravityValue = Value
+        workspace.Gravity = Value
+    end,
+})
+
 Movement:CreateToggle({
     Name = "🔄 Infinite Jump",
     CurrentValue = false,
     Flag = "InfJump",
     Callback = function(Value)
-        local player = game.Players.LocalPlayer
-        local character = player.Character or player.CharacterAdded:Wait()
-        local humanoid = character:WaitForChild("Humanoid")
+        local char = player.Character or player.CharacterAdded:Wait()
+        local humanoid = char:WaitForChild("Humanoid")
         if Value then
             local canJump = true
             local jumpCooldown = 0.3
@@ -213,7 +231,7 @@ Movement:CreateToggle({
                     canJump = true
                 end
             end
-            _G.InfJumpConnection = game:GetService("UserInputService").JumpRequest:Connect(onJumpRequest)
+            _G.InfJumpConnection = UIS.JumpRequest:Connect(onJumpRequest)
         else
             if _G.InfJumpConnection then
                 _G.InfJumpConnection:Disconnect()
@@ -228,12 +246,11 @@ Movement:CreateToggle({
     CurrentValue = false,
     Flag = "NoClip",
     Callback = function(Value)
-        local player = game.Players.LocalPlayer
         local char = player.Character
         if not char then return end
 
         if Value then
-            _G.NoClipConnection = game:GetService("RunService").Stepped:Connect(function()
+            _G.NoClipConnection = RunService.Stepped:Connect(function()
                 if not Value then return end
                 local char = player.Character
                 if char then
@@ -254,7 +271,6 @@ Movement:CreateToggle({
                 _G.NoClipConnection:Disconnect()
                 _G.NoClipConnection = nil
             end
-            local char = player.Character
             if char then
                 for _, part in ipairs(char:GetDescendants()) do
                     if part:IsA("BasePart") then
@@ -266,9 +282,9 @@ Movement:CreateToggle({
     end,
 })
 
--- ================================================
--- VISUALS
--- ================================================
+-- ============================================================
+-- 2. VISUALS (ESP, Wallhack, FOV)
+-- ============================================================
 Visuals:CreateSection("👁️ ESP & Visuals")
 
 local espObjects = {}
@@ -276,7 +292,7 @@ local espEnabled = false
 local espConnections = {}
 
 local function createESP(playerObj)
-    if playerObj == game.Players.LocalPlayer then return end
+    if playerObj == player then return end
     local character = playerObj.Character
     if not character then return end
     local root = character:FindFirstChild("HumanoidRootPart")
@@ -322,7 +338,7 @@ local function createESP(playerObj)
 end
 
 local function clearAllESP()
-    for player, espData in pairs(espObjects) do
+    for playerObj, espData in pairs(espObjects) do
         if espData.box and espData.box.Parent then espData.box:Destroy() end
         if espData.nameTag and espData.nameTag.Parent then espData.nameTag:Destroy() end
     end
@@ -407,13 +423,38 @@ Visuals:CreateSlider({
     CurrentValue = 70,
     Flag = "FOV",
     Callback = function(Value)
-        game.Workspace.CurrentCamera.FieldOfView = Value
+        workspace.CurrentCamera.FieldOfView = Value
     end,
 })
 
--- ================================================
--- UTILITY
--- ================================================
+-- ============================================================
+-- 3. UTILITY (ТЕЛЕПОРТ ПО КЛИКУ + Anti-AFK + Маркер)
+-- ============================================================
+Utility:CreateSection("🖱️ Teleport on Click")
+
+local teleportClickEnabled = false
+
+Utility:CreateToggle({
+    Name = "🖱️ Click to Teleport",
+    CurrentValue = false,
+    Flag = "TeleportClick",
+    Callback = function(Value)
+        teleportClickEnabled = Value
+    end,
+})
+
+mouse.Button1Down:Connect(function()
+    if not teleportClickEnabled then return end
+    local target = mouse.Target
+    if not target then return end
+    local position = target.Position
+    if not position then return end
+    local char = player.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        char.HumanoidRootPart.CFrame = CFrame.new(position.X, position.Y + 3, position.Z)
+    end
+end)
+
 Utility:CreateSection("🛡️ Other")
 
 local antiAFKEnabled = false
@@ -426,7 +467,7 @@ Utility:CreateToggle({
     Callback = function(Value)
         antiAFKEnabled = Value
         if Value then
-            antiAFKConnection = game:GetService("RunService").Heartbeat:Connect(function() end)
+            antiAFKConnection = RunService.Heartbeat:Connect(function() end)
         else
             if antiAFKConnection then
                 antiAFKConnection:Disconnect()
@@ -436,9 +477,33 @@ Utility:CreateToggle({
     end,
 })
 
--- ================================================
--- SETTINGS
--- ================================================
+local markerPos = nil
+
+Utility:CreateButton({
+    Name = "📌 Set Marker",
+    Callback = function()
+        local char = player.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            markerPos = char.HumanoidRootPart.CFrame
+        end
+    end,
+})
+
+Utility:CreateButton({
+    Name = "🚀 Teleport to Marker",
+    Callback = function()
+        if markerPos then
+            local char = player.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                char.HumanoidRootPart.CFrame = markerPos
+            end
+        end
+    end,
+})
+
+-- ============================================================
+-- 4. SETTINGS
+-- ============================================================
 Settings:CreateSection("⚙️ General")
 
 Settings:CreateButton({
@@ -451,41 +516,43 @@ Settings:CreateButton({
     Callback = function() Rayfield:LoadConfiguration() end,
 })
 
-Settings:CreateLabel("✨ Ruby HUB v1.0\n👤 Developer: lechayy\n⚡ Powered by Rayfield")
+Settings:CreateLabel("✨ Ruby HUB v2.0\n👤 Developer: lechayy\n⚡ Powered by Rayfield")
 
--- ================================================
--- ВОССТАНОВЛЕНИЕ ПОСЛЕ СМЕРТИ (исправлено)
--- ================================================
-local player = game.Players.LocalPlayer
+-- ============================================================
+-- 5. ВОССТАНОВЛЕНИЕ ПОСЛЕ СМЕРТИ
+-- ============================================================
+player.CharacterRemoving:Connect(function()
+    stopFly()
+    if _G.InfJumpConnection then
+        _G.InfJumpConnection:Disconnect()
+        _G.InfJumpConnection = nil
+    end
+    if _G.NoClipConnection then
+        _G.NoClipConnection:Disconnect()
+        _G.NoClipConnection = nil
+    end
+    if antiAFKConnection then
+        antiAFKConnection:Disconnect()
+        antiAFKConnection = nil
+    end
+end)
 
 player.CharacterAdded:Connect(function(char)
     task.wait(0.5)
-
     local humanoid = char:FindFirstChildOfClass("Humanoid")
     if not humanoid then return end
 
-    -- 1. Сначала отключаем старые соединения для полёта
-    stopFly()
+    humanoid.WalkSpeed = Rayfield:GetFlag("WalkSpeed") or 16
+    humanoid.JumpPower = Rayfield:GetFlag("JumpPower") or 50
+    workspace.Gravity = Rayfield:GetFlag("Gravity") or 196.2
 
-    -- 2. Восстанавливаем Walk Speed и Jump Power
-    local walkSpeed = Rayfield:GetFlag("WalkSpeed") or 16
-    humanoid.WalkSpeed = walkSpeed
-    local jumpPower = Rayfield:GetFlag("JumpPower") or 50
-    humanoid.JumpPower = jumpPower
-
-    -- 3. Восстанавливаем Fly (если был включён)
     if Rayfield:GetFlag("FlyMode") then
         flyEnabled = true
         startFly()
     end
 
-    -- 4. Восстанавливаем NoClip (если был включён)
     if Rayfield:GetFlag("NoClip") then
-        if _G.NoClipConnection then
-            _G.NoClipConnection:Disconnect()
-            _G.NoClipConnection = nil
-        end
-        _G.NoClipConnection = game:GetService("RunService").Stepped:Connect(function()
+        _G.NoClipConnection = RunService.Stepped:Connect(function()
             if not Rayfield:GetFlag("NoClip") then return end
             local char = player.Character
             if char then
@@ -503,12 +570,7 @@ player.CharacterAdded:Connect(function(char)
         end
     end
 
-    -- 5. Восстанавливаем Infinite Jump (если был включён)
     if Rayfield:GetFlag("InfJump") then
-        if _G.InfJumpConnection then
-            _G.InfJumpConnection:Disconnect()
-            _G.InfJumpConnection = nil
-        end
         local canJump = true
         local jumpCooldown = 0.3
         local function onJumpRequest()
@@ -519,6 +581,10 @@ player.CharacterAdded:Connect(function(char)
                 canJump = true
             end
         end
-        _G.InfJumpConnection = game:GetService("UserInputService").JumpRequest:Connect(onJumpRequest)
+        _G.InfJumpConnection = UIS.JumpRequest:Connect(onJumpRequest)
+    end
+
+    if Rayfield:GetFlag("AntiAFK") then
+        antiAFKConnection = RunService.Heartbeat:Connect(function() end)
     end
 end)

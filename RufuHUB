@@ -1,15 +1,11 @@
--- ============================================================
--- RUBY HUB v2.0 (без print и лишних сообщений)
--- ============================================================
-
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "✨ Ruby HUB",
+   Name = "💎 Rufu HUB",
    Icon = 0,
-   LoadingTitle = "Ruby HUB",
-   LoadingSubtitle = "by RubyReal",
-   ShowText = "Ruby",
+   LoadingTitle = "Rufu HUB",
+   LoadingSubtitle = "by RufyReal",
+   ShowText = "Rufu",
    Theme = "Default",
    ToggleUIKeybind = "K",
    DisableRayfieldPrompts = false,
@@ -17,7 +13,7 @@ local Window = Rayfield:CreateWindow({
    ConfigurationSaving = {
       Enabled = true,
       FolderName = nil,
-      FileName = "Big Hub"
+      FileName = "Rufu"
    },
    Discord = {
       Enabled = false,

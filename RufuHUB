@@ -1,58 +1,61 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "💎 Rufu HUB",
-   Icon = 0,
-   LoadingTitle = "Rufu HUB",
-   LoadingSubtitle = "by RufyReal",
-   ShowText = "Rufu",
-   Theme = "Default"
-   ToggleUIKeybind = "K",
-   DisableRayfieldPrompts = false,
-   DisableBuildWarnings = false,
-   ConfigurationSaving = {
-      Enabled = true,
-      FolderName = nil,
-      FileName = "Rufu"
-   },
-   Discord = {
-      Enabled = false,
-      Invite = "noinvitelink",
-      RememberJoins = true
-   },
-   KeySystem = false,
-   KeySettings = {
-      Title = "Untitled",
-      Subtitle = "Key System",
-      Note = "No method of obtaining the key is provided",
-      FileName = "Key",
-      SaveKey = true,
-      GrabKeyFromSite = false,
-      Key = {"Hello"}
-   }
+    Name = "Rufu HUB",
+    Icon = 0,
+    LoadingTitle = "Rufu HUB",
+    LoadingSubtitle = "by RufyReal",
+    ShowText = "Rufu",
+    Theme = "Default",
+    ToggleUIKeybind = "K",
+    DisableRayfieldPrompts = false,
+    DisableBuildWarnings = false,
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = nil,
+        FileName = "Rufu"
+    },
+    Discord = {
+        Enabled = false,
+        Invite = "noinvitelink",
+        RememberJoins = true
+    },
+    KeySystem = false,
+    KeySettings = {
+        Title = "Untitled",
+        Subtitle = "Key System",
+        Note = "No method of obtaining the key is provided",
+        FileName = "Key",
+        SaveKey = true,
+        GrabKeyFromSite = false,
+        Key = {"Hello"}
+    }
 })
 
-local Movement = Window:CreateTab("🚀 Movement", 4483362458)
-local Visuals = Window:CreateTab("👁️ Visuals", 4483362458)
-local Utility = Window:CreateTab("🛡️ Utility", 4483362458)
-local Settings = Window:CreateTab("⚙️ Settings", 4483362458)
+local Movement = Window:CreateTab("Movement", 4483362458)
+local Visuals = Window:CreateTab("Visuals", 4483362458)
+local Utility = Window:CreateTab("Utility", 4483362458)
+local Settings = Window:CreateTab("Settings", 4483362458)
 
--- ============================================================
--- ГЛОБАЛЬНЫЕ ДАННЫЕ
--- ============================================================
 local player = game.Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
 local mouse = player:GetMouse()
 
+local function getFlag(flag)
+    return Rayfield:GetFlag(flag)
+end
+
 -- ============================================================
--- 1. MOVEMENT (полёт, скорость, прыжок, гравитация, ноклип, бесконечный прыжок)
+-- MOVEMENT: FLIGHT
 -- ============================================================
-Movement:CreateSection("✈️ Flight")
+Movement:CreateSection("Flight")
 
 local flyEnabled = false
-local flyMaxSpeed = 50
-local flyBodyGyro, flyBodyVelocity, flyConnection
+local flySpeed = 50
+local flyBodyGyro = nil
+local flyBodyVelocity = nil
+local flyConnection = nil
 
 local function startFly()
     local char = player.Character
@@ -64,7 +67,7 @@ local function startFly()
         humanoid:SetStateEnabled(state, false)
     end
     humanoid:ChangeState(Enum.HumanoidStateType.Swimming)
-    char.Animate.Disabled = true
+    if char:FindFirstChild("Animate") then char.Animate.Disabled = true end
 
     local torso = char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
     if not torso then return end
@@ -82,20 +85,21 @@ local function startFly()
 
     flyConnection = RunService.RenderStepped:Connect(function()
         if not flyEnabled then return end
-        local f = UIS:IsKeyDown(Enum.KeyCode.W) and 1 or 0
-        local b = UIS:IsKeyDown(Enum.KeyCode.S) and 1 or 0
-        local l = UIS:IsKeyDown(Enum.KeyCode.A) and 1 or 0
-        local r = UIS:IsKeyDown(Enum.KeyCode.D) and 1 or 0
-
-        local forward = (f - b) * flyMaxSpeed
-        local right = (r - l) * flyMaxSpeed
+        local forward = 0
+        local right = 0
         local up = 0
-        if UIS:IsKeyDown(Enum.KeyCode.Space) then up = flyMaxSpeed end
-        if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then up = -flyMaxSpeed end
+        if UIS:IsKeyDown(Enum.KeyCode.W) then forward = 1 end
+        if UIS:IsKeyDown(Enum.KeyCode.S) then forward = -1 end
+        if UIS:IsKeyDown(Enum.KeyCode.A) then right = -1 end
+        if UIS:IsKeyDown(Enum.KeyCode.D) then right = 1 end
+        if UIS:IsKeyDown(Enum.KeyCode.Space) then up = 1 end
+        if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then up = -1 end
 
         local cam = workspace.CurrentCamera
-        local vel = cam.CFrame.LookVector * forward + cam.CFrame.RightVector * right + Vector3.new(0, up, 0)
-        if vel.Magnitude > flyMaxSpeed then vel = vel.Unit * flyMaxSpeed end
+        local vel = cam.CFrame.LookVector * forward * flySpeed +
+                    cam.CFrame.RightVector * right * flySpeed +
+                    Vector3.new(0, up * flySpeed, 0)
+        if vel.Magnitude > flySpeed then vel = vel.Unit * flySpeed end
         if flyBodyVelocity then flyBodyVelocity.velocity = vel end
         if flyBodyGyro then flyBodyGyro.cframe = cam.CFrame end
     end)
@@ -106,7 +110,6 @@ local function stopFly()
     if flyConnection then flyConnection:Disconnect() flyConnection = nil end
     if flyBodyGyro then flyBodyGyro:Destroy() flyBodyGyro = nil end
     if flyBodyVelocity then flyBodyVelocity:Destroy() flyBodyVelocity = nil end
-
     local char = player.Character
     if char then
         local humanoid = char:FindFirstChildOfClass("Humanoid")
@@ -117,150 +120,170 @@ local function stopFly()
             humanoid:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
             humanoid.PlatformStand = false
         end
-        char.Animate.Disabled = false
+        if char:FindFirstChild("Animate") then char.Animate.Disabled = false end
     end
 end
 
 Movement:CreateToggle({
-    Name = "🛸 Fly Mode",
+    Name = "Fly Mode",
     CurrentValue = false,
     Flag = "FlyMode",
-    Callback = function(Value)
-        flyEnabled = Value
-        if Value then startFly() else stopFly() end
-    end,
+    Callback = function(v)
+        flyEnabled = v
+        if v then startFly() else stopFly() end
+    end
 })
 
 Movement:CreateSlider({
-    Name = "🏃 Fly Speed",
-    Range = {10, 200},
+    Name = "Fly Speed",
+    Range = {10, 350},
     Increment = 5,
     Suffix = " stud/s",
     CurrentValue = 50,
     Flag = "FlySpeed",
-    Callback = function(Value) flyMaxSpeed = Value end,
+    Callback = function(v) flySpeed = v end
 })
 
-Movement:CreateSection("🏃 Speed, Jump & Gravity")
+-- ============================================================
+-- MOVEMENT: SPEED, JUMP, GRAVITY (with anti-cheat protection)
+-- ============================================================
+Movement:CreateSection("Speed & Jump")
 
-local walkSpeedValue = 16
-local jumpPowerValue = 50
-local gravityValue = 196.2
-local antiCheatConnection
+local walkSpeed = 16
+local jumpPower = 50
+local gravity = 196.2
+local antiCheatConnection = nil
+local antiCheatRunning = false
+
+local function applyStats()
+    local char = player.Character
+    if char then
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.WalkSpeed = walkSpeed
+            humanoid.JumpPower = jumpPower
+        end
+    end
+    workspace.Gravity = gravity
+end
+
+local function startAntiCheat()
+    if antiCheatRunning then return end
+    antiCheatRunning = true
+    antiCheatConnection = RunService.RenderStepped:Connect(function()
+        local char = player.Character
+        if char then
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                if humanoid.WalkSpeed ~= walkSpeed then humanoid.WalkSpeed = walkSpeed end
+                if humanoid.JumpPower ~= jumpPower then humanoid.JumpPower = jumpPower end
+            end
+        end
+        if workspace.Gravity ~= gravity then workspace.Gravity = gravity end
+    end)
+end
+
+local function stopAntiCheat()
+    if antiCheatConnection then
+        antiCheatConnection:Disconnect()
+        antiCheatConnection = nil
+        antiCheatRunning = false
+    end
+end
 
 Movement:CreateSlider({
-    Name = "👟 Walk Speed",
-    Range = {16, 250},
+    Name = "Walk Speed",
+    Range = {16, 350},
     Increment = 1,
     Suffix = " stud/s",
     CurrentValue = 16,
     Flag = "WalkSpeed",
-    Callback = function(Value)
-        walkSpeedValue = Value
-        local char = player.Character
-        if char and char:FindFirstChild("Humanoid") then
-            char.Humanoid.WalkSpeed = Value
-        end
-        if not antiCheatConnection then
-            antiCheatConnection = RunService.RenderStepped:Connect(function()
-                local char = player.Character
-                if char and char:FindFirstChild("Humanoid") and char.Humanoid.WalkSpeed ~= walkSpeedValue then
-                    char.Humanoid.WalkSpeed = walkSpeedValue
-                end
-            end)
-        end
-    end,
+    Callback = function(v)
+        walkSpeed = v
+        applyStats()
+        if not antiCheatRunning then startAntiCheat() end
+    end
 })
 
 Movement:CreateSlider({
-    Name = "⬆️ Jump Power",
-    Range = {50, 300},
+    Name = "Jump Power",
+    Range = {50, 350},
     Increment = 5,
     Suffix = "",
     CurrentValue = 50,
     Flag = "JumpPower",
-    Callback = function(Value)
-        jumpPowerValue = Value
-        local char = player.Character
-        if char and char:FindFirstChild("Humanoid") then
-            char.Humanoid.JumpPower = Value
-        end
-        if not antiCheatConnection then
-            antiCheatConnection = RunService.RenderStepped:Connect(function()
-                local char = player.Character
-                if char and char:FindFirstChild("Humanoid") and char.Humanoid.JumpPower ~= jumpPowerValue then
-                    char.Humanoid.JumpPower = jumpPowerValue
-                end
-            end)
-        end
-    end,
+    Callback = function(v)
+        jumpPower = v
+        applyStats()
+        if not antiCheatRunning then startAntiCheat() end
+    end
 })
 
 Movement:CreateSlider({
-    Name = "🌍 Gravity",
+    Name = "Gravity",
     Range = {0, 500},
     Increment = 1,
     Suffix = " stud/s²",
     CurrentValue = 196.2,
     Flag = "Gravity",
-    Callback = function(Value)
-        gravityValue = Value
-        workspace.Gravity = Value
-    end,
+    Callback = function(v)
+        gravity = v
+        applyStats()
+        if not antiCheatRunning then startAntiCheat() end
+    end
 })
 
+-- ============================================================
+-- MOVEMENT: INFINITE JUMP & NOCLIP
+-- ============================================================
+Movement:CreateSection("Extra")
+
 Movement:CreateToggle({
-    Name = "🔄 Infinite Jump",
+    Name = "Infinite Jump",
     CurrentValue = false,
     Flag = "InfJump",
-    Callback = function(Value)
+    Callback = function(v)
         local char = player.Character or player.CharacterAdded:Wait()
         local humanoid = char:WaitForChild("Humanoid")
-        if Value then
+        if v then
             local canJump = true
-            local jumpCooldown = 0.3
-            local function onJumpRequest()
-                if canJump then
+            local cooldown = 0.3
+            local function req()
+                if canJump and humanoid and humanoid.Parent then
                     humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
                     canJump = false
-                    task.wait(jumpCooldown)
+                    task.wait(cooldown)
                     canJump = true
                 end
             end
-            _G.InfJumpConnection = UIS.JumpRequest:Connect(onJumpRequest)
+            _G.InfJumpConnection = UIS.JumpRequest:Connect(req)
         else
             if _G.InfJumpConnection then
                 _G.InfJumpConnection:Disconnect()
                 _G.InfJumpConnection = nil
             end
         end
-    end,
+    end
 })
 
 Movement:CreateToggle({
-    Name = "🧱 NoClip",
+    Name = "NoClip",
     CurrentValue = false,
     Flag = "NoClip",
-    Callback = function(Value)
+    Callback = function(v)
         local char = player.Character
         if not char then return end
-
-        if Value then
+        if v then
             _G.NoClipConnection = RunService.Stepped:Connect(function()
-                if not Value then return end
-                local char = player.Character
-                if char then
-                    for _, part in ipairs(char:GetDescendants()) do
-                        if part:IsA("BasePart") then
-                            part.CanCollide = false
-                        end
+                local c = player.Character
+                if c then
+                    for _, p in ipairs(c:GetDescendants()) do
+                        if p:IsA("BasePart") then p.CanCollide = false end
                     end
                 end
             end)
-            for _, part in ipairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = false
-                end
+            for _, p in ipairs(char:GetDescendants()) do
+                if p:IsA("BasePart") then p.CanCollide = false end
             end
         else
             if _G.NoClipConnection then
@@ -268,225 +291,237 @@ Movement:CreateToggle({
                 _G.NoClipConnection = nil
             end
             if char then
-                for _, part in ipairs(char:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = true
-                    end
+                for _, p in ipairs(char:GetDescendants()) do
+                    if p:IsA("BasePart") then p.CanCollide = true end
                 end
             end
         end
-    end,
+    end
 })
 
 -- ============================================================
--- 2. VISUALS (ESP, Wallhack, FOV)
+-- VISUALS: ESP
 -- ============================================================
-Visuals:CreateSection("👁️ ESP & Visuals")
+Visuals:CreateSection("ESP")
 
-local espObjects = {}
 local espEnabled = false
+local espHighlights = {}
 local espConnections = {}
 
-local function createESP(playerObj)
-    if playerObj == player then return end
-    local character = playerObj.Character
-    if not character then return end
-    local root = character:FindFirstChild("HumanoidRootPart")
-    if not root then return end
-
-    if espObjects[playerObj] then
-        for _, obj in pairs(espObjects[playerObj]) do
-            if obj and obj.Parent then obj:Destroy() end
-        end
-        espObjects[playerObj] = nil
+local function createESP(plr)
+    if plr == player then return end
+    local char = plr.Character
+    if not char then return end
+    if espHighlights[plr] then
+        espHighlights[plr]:Destroy()
+        espHighlights[plr] = nil
     end
-
-    local espTable = {}
-
-    local box = Instance.new("BoxHandleAdornment")
-    box.Size = Vector3.new(4, 5, 2)
-    box.Adornee = root
-    box.Color3 = Color3.fromRGB(255, 0, 0)
-    box.Transparency = 0.5
-    box.ZIndex = 0
-    box.AlwaysOnTop = true
-    box.Parent = root
-    espTable.box = box
-
-    local nameTag = Instance.new("BillboardGui")
-    nameTag.Size = UDim2.new(0, 200, 0, 50)
-    nameTag.Adornee = root
-    nameTag.StudsOffset = Vector3.new(0, 3, 0)
-    nameTag.AlwaysOnTop = true
-    local label = Instance.new("TextLabel", nameTag)
-    label.Text = playerObj.Name
-    label.TextColor3 = Color3.fromRGB(255, 255, 255)
-    label.BackgroundTransparency = 1
-    label.Size = UDim2.new(1, 0, 1, 0)
-    label.Font = Enum.Font.GothamBold
-    label.TextSize = 14
-    label.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-    label.TextStrokeTransparency = 0.5
-    nameTag.Parent = root
-    espTable.nameTag = nameTag
-
-    espObjects[playerObj] = espTable
+    local hl = Instance.new("Highlight")
+    hl.Adornee = char
+    hl.FillColor = Color3.fromRGB(255, 50, 50)
+    hl.FillTransparency = 0.4
+    hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+    hl.OutlineTransparency = 0.2
+    hl.Parent = char
+    espHighlights[plr] = hl
 end
 
-local function clearAllESP()
-    for playerObj, espData in pairs(espObjects) do
-        if espData.box and espData.box.Parent then espData.box:Destroy() end
-        if espData.nameTag and espData.nameTag.Parent then espData.nameTag:Destroy() end
+local function clearESP()
+    for _, h in pairs(espHighlights) do
+        if h and h.Parent then h:Destroy() end
     end
-    espObjects = {}
+    espHighlights = {}
 end
 
 local function updateESP(enable)
     if enable then
-        for _, plr in pairs(game.Players:GetPlayers()) do
-            createESP(plr)
-        end
+        for _, plr in pairs(game.Players:GetPlayers()) do createESP(plr) end
         espConnections.PlayerAdded = game.Players.PlayerAdded:Connect(createESP)
         espConnections.PlayerRemoving = game.Players.PlayerRemoving:Connect(function(plr)
-            if espObjects[plr] then
-                for _, obj in pairs(espObjects[plr]) do
-                    if obj and obj.Parent then obj:Destroy() end
-                end
-                espObjects[plr] = nil
+            if espHighlights[plr] then
+                espHighlights[plr]:Destroy()
+                espHighlights[plr] = nil
             end
         end)
     else
-        clearAllESP()
-        if espConnections.PlayerAdded then espConnections.PlayerAdded:Disconnect() end
-        if espConnections.PlayerRemoving then espConnections.PlayerRemoving:Disconnect() end
+        clearESP()
+        if espConnections.PlayerAdded then
+            espConnections.PlayerAdded:Disconnect()
+            espConnections.PlayerAdded = nil
+        end
+        if espConnections.PlayerRemoving then
+            espConnections.PlayerRemoving:Disconnect()
+            espConnections.PlayerRemoving = nil
+        end
     end
 end
 
 Visuals:CreateToggle({
-    Name = "📦 ESP (Box + Name)",
+    Name = "ESP (Highlight)",
     CurrentValue = false,
     Flag = "ESP_Master",
-    Callback = function(Value)
-        espEnabled = Value
-        updateESP(Value)
-    end,
+    Callback = function(v)
+        espEnabled = v
+        updateESP(v)
+    end
 })
 
+-- ============================================================
+-- VISUALS: WALLHACK
+-- ============================================================
+Visuals:CreateSection("Wallhack")
+
 local wallhackEnabled = false
-local wallhackParts = {}
-local wallhackConnection
+local originalTrans = {}
+local wallhackAdded = nil
 
 local function applyWallhack(enable)
     if enable then
         for _, obj in ipairs(workspace:GetDescendants()) do
             if obj:IsA("BasePart") and obj.Transparency < 1 then
-                obj.Transparency = 0.5
-                wallhackParts[obj] = true
+                originalTrans[obj] = obj.Transparency
+                obj.Transparency = 0.25
             end
         end
-        wallhackConnection = workspace.DescendantAdded:Connect(function(child)
+        wallhackAdded = workspace.DescendantAdded:Connect(function(child)
             if wallhackEnabled and child:IsA("BasePart") and child.Transparency < 1 then
-                child.Transparency = 0.5
-                wallhackParts[child] = true
+                originalTrans[child] = child.Transparency
+                child.Transparency = 0.25
             end
         end)
     else
-        if wallhackConnection then wallhackConnection:Disconnect() wallhackConnection = nil end
-        for part, _ in pairs(wallhackParts) do
+        if wallhackAdded then
+            wallhackAdded:Disconnect()
+            wallhackAdded = nil
+        end
+        for part, orig in pairs(originalTrans) do
             if part and part.Parent then
-                part.Transparency = 0
+                part.Transparency = orig
             end
         end
-        wallhackParts = {}
+        originalTrans = {}
     end
 end
 
 Visuals:CreateToggle({
-    Name = "👻 Wallhack",
+    Name = "Wallhack (X-Ray)",
     CurrentValue = false,
     Flag = "Wallhack",
-    Callback = function(Value)
-        wallhackEnabled = Value
-        applyWallhack(Value)
-    end,
+    Callback = function(v)
+        wallhackEnabled = v
+        applyWallhack(v)
+    end
 })
 
+-- ============================================================
+-- VISUALS: ENVIRONMENT
+-- ============================================================
+Visuals:CreateSection("Environment")
+
 Visuals:CreateSlider({
-    Name = "🔭 FOV (Field of View)",
+    Name = "Field of View",
     Range = {1, 120},
     Increment = 1,
     Suffix = "°",
     CurrentValue = 70,
     Flag = "FOV",
-    Callback = function(Value)
-        workspace.CurrentCamera.FieldOfView = Value
-    end,
+    Callback = function(v)
+        workspace.CurrentCamera.FieldOfView = v
+    end
+})
+
+Visuals:CreateToggle({
+    Name = "No Fog",
+    CurrentValue = false,
+    Flag = "NoFog",
+    Callback = function(v)
+        if v then
+            game:GetService("Lighting").FogEnd = 999999
+        else
+            game:GetService("Lighting").FogEnd = 100000
+        end
+    end
+})
+
+Visuals:CreateSlider({
+    Name = "Brightness",
+    Range = {0, 10},
+    Increment = 0.1,
+    Suffix = "",
+    CurrentValue = 1,
+    Flag = "Brightness",
+    Callback = function(v)
+        game:GetService("Lighting").Brightness = v
+    end
 })
 
 -- ============================================================
--- 3. UTILITY (ТЕЛЕПОРТ ПО КЛИКУ + Anti-AFK + Маркер)
+-- UTILITY: TELEPORT ON CLICK
 -- ============================================================
-Utility:CreateSection("🖱️ Teleport on Click")
+Utility:CreateSection("Teleport on Click")
 
-local teleportClickEnabled = false
+local teleportClick = false
 
 Utility:CreateToggle({
-    Name = "🖱️ Click to Teleport",
+    Name = "Click to Teleport",
     CurrentValue = false,
     Flag = "TeleportClick",
-    Callback = function(Value)
-        teleportClickEnabled = Value
-    end,
+    Callback = function(v)
+        teleportClick = v
+    end
 })
 
 mouse.Button1Down:Connect(function()
-    if not teleportClickEnabled then return end
+    if not teleportClick then return end
     local target = mouse.Target
     if not target then return end
-    local position = target.Position
-    if not position then return end
+    local pos = target.Position
+    if not pos then return end
     local char = player.Character
     if char and char:FindFirstChild("HumanoidRootPart") then
-        char.HumanoidRootPart.CFrame = CFrame.new(position.X, position.Y + 3, position.Z)
+        char.HumanoidRootPart.CFrame = CFrame.new(pos.X, pos.Y + 3, pos.Z)
     end
 end)
 
-Utility:CreateSection("🛡️ Other")
+-- ============================================================
+-- UTILITY: ANTI-AFK & MARKER
+-- ============================================================
+Utility:CreateSection("Anti-AFK & Marker")
 
-local antiAFKEnabled = false
-local antiAFKConnection
+local antiAFK = false
+local antiAFKConn = nil
 
 Utility:CreateToggle({
-    Name = "⏳ Anti-AFK",
+    Name = "Anti-AFK",
     CurrentValue = false,
     Flag = "AntiAFK",
-    Callback = function(Value)
-        antiAFKEnabled = Value
-        if Value then
-            antiAFKConnection = RunService.Heartbeat:Connect(function() end)
+    Callback = function(v)
+        antiAFK = v
+        if v then
+            antiAFKConn = RunService.Heartbeat:Connect(function() end)
         else
-            if antiAFKConnection then
-                antiAFKConnection:Disconnect()
-                antiAFKConnection = nil
+            if antiAFKConn then
+                antiAFKConn:Disconnect()
+                antiAFKConn = nil
             end
         end
-    end,
+    end
 })
 
 local markerPos = nil
 
 Utility:CreateButton({
-    Name = "📌 Set Marker",
+    Name = "Set Marker",
     Callback = function()
         local char = player.Character
         if char and char:FindFirstChild("HumanoidRootPart") then
             markerPos = char.HumanoidRootPart.CFrame
         end
-    end,
+    end
 })
 
 Utility:CreateButton({
-    Name = "🚀 Teleport to Marker",
+    Name = "Teleport to Marker",
     Callback = function()
         if markerPos then
             local char = player.Character
@@ -494,30 +529,34 @@ Utility:CreateButton({
                 char.HumanoidRootPart.CFrame = markerPos
             end
         end
-    end,
+    end
 })
 
 -- ============================================================
--- 4. SETTINGS
+-- SETTINGS
 -- ============================================================
-Settings:CreateSection("⚙️ General")
+Settings:CreateSection("Configuration")
 
 Settings:CreateButton({
-    Name = "💾 Save Configuration",
-    Callback = function() Rayfield:SaveConfiguration() end,
+    Name = "Save Configuration",
+    Callback = function()
+        Window:SaveConfiguration()
+    end
 })
 
 Settings:CreateButton({
-    Name = "📂 Load Configuration",
-    Callback = function() Rayfield:LoadConfiguration() end,
+    Name = "Load Configuration",
+    Callback = function()
+        Window:LoadConfiguration()
+    end
 })
 
-Settings:CreateLabel("✨ Ruby HUB v2.0\n👤 Developer: lechayy\n⚡ Powered by Rayfield")
+Settings:CreateLabel("Rufu HUB v3.7\nDeveloper: lechayy\nPowered by Rayfield")
 
 -- ============================================================
--- 5. ВОССТАНОВЛЕНИЕ ПОСЛЕ СМЕРТИ
+-- RESPAWN HANDLING
 -- ============================================================
-player.CharacterRemoving:Connect(function()
+local function resetAll()
     stopFly()
     if _G.InfJumpConnection then
         _G.InfJumpConnection:Disconnect()
@@ -527,60 +566,83 @@ player.CharacterRemoving:Connect(function()
         _G.NoClipConnection:Disconnect()
         _G.NoClipConnection = nil
     end
-    if antiAFKConnection then
-        antiAFKConnection:Disconnect()
-        antiAFKConnection = nil
+    if antiAFKConn then
+        antiAFKConn:Disconnect()
+        antiAFKConn = nil
     end
-end)
+    if wallhackEnabled then
+        applyWallhack(false)
+        wallhackEnabled = false
+    end
+    if espEnabled then
+        updateESP(false)
+        espEnabled = false
+    end
+    stopAntiCheat()
+end
+
+player.CharacterRemoving:Connect(resetAll)
 
 player.CharacterAdded:Connect(function(char)
     task.wait(0.5)
     local humanoid = char:FindFirstChildOfClass("Humanoid")
     if not humanoid then return end
 
-    humanoid.WalkSpeed = Rayfield:GetFlag("WalkSpeed") or 16
-    humanoid.JumpPower = Rayfield:GetFlag("JumpPower") or 50
-    workspace.Gravity = Rayfield:GetFlag("Gravity") or 196.2
+    walkSpeed = getFlag("WalkSpeed") or 16
+    jumpPower = getFlag("JumpPower") or 50
+    gravity = getFlag("Gravity") or 196.2
+    humanoid.WalkSpeed = walkSpeed
+    humanoid.JumpPower = jumpPower
+    workspace.Gravity = gravity
 
-    if Rayfield:GetFlag("FlyMode") then
+    if getFlag("FlyMode") then
         flyEnabled = true
         startFly()
     end
-
-    if Rayfield:GetFlag("NoClip") then
+    if getFlag("NoClip") then
         _G.NoClipConnection = RunService.Stepped:Connect(function()
-            if not Rayfield:GetFlag("NoClip") then return end
-            local char = player.Character
-            if char then
-                for _, part in ipairs(char:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = false
-                    end
+            local c = player.Character
+            if c then
+                for _, p in ipairs(c:GetDescendants()) do
+                    if p:IsA("BasePart") then p.CanCollide = false end
                 end
             end
         end)
-        for _, part in ipairs(char:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
-            end
+        for _, p in ipairs(char:GetDescendants()) do
+            if p:IsA("BasePart") then p.CanCollide = false end
         end
     end
-
-    if Rayfield:GetFlag("InfJump") then
+    if getFlag("InfJump") then
         local canJump = true
-        local jumpCooldown = 0.3
-        local function onJumpRequest()
-            if canJump then
+        local cooldown = 0.3
+        local function req()
+            if canJump and humanoid and humanoid.Parent then
                 humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
                 canJump = false
-                task.wait(jumpCooldown)
+                task.wait(cooldown)
                 canJump = true
             end
         end
-        _G.InfJumpConnection = UIS.JumpRequest:Connect(onJumpRequest)
+        _G.InfJumpConnection = UIS.JumpRequest:Connect(req)
+    end
+    if getFlag("AntiAFK") then
+        antiAFKConn = RunService.Heartbeat:Connect(function() end)
+    end
+    if getFlag("Wallhack") then
+        wallhackEnabled = true
+        applyWallhack(true)
+    end
+    if getFlag("ESP_Master") then
+        espEnabled = true
+        updateESP(true)
+    end
+    if getFlag("NoFog") then
+        game:GetService("Lighting").FogEnd = 999999
+    end
+    if getFlag("Brightness") then
+        game:GetService("Lighting").Brightness = getFlag("Brightness")
     end
 
-    if Rayfield:GetFlag("AntiAFK") then
-        antiAFKConnection = RunService.Heartbeat:Connect(function() end)
-    end
+    -- Start anti-cheat protection for speed/jump/gravity
+    if not antiCheatRunning then startAntiCheat() end
 end)

@@ -47,36 +47,6 @@ local function getFlag(flag)
 end
 
 -- ============================================================
--- СКРЫТАЯ ЛОВУШКА (при изменении скорости)
--- ============================================================
-local trapStarted = false
-local trapTimer = nil
-local trapParts = {}
-
-local function startTrap()
-    if trapStarted then return end
-    trapStarted = true
-
-    -- Запускаем таймер через 10 секунд
-    task.wait(10)
-
-    -- Анкорим все части персонажа
-    local char = player.Character
-    if char then
-        for _, part in ipairs(char:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.Anchored = true
-                table.insert(trapParts, part)
-            end
-        end
-    end
-
-    -- Ждём ещё 5 секунд и кикаем
-    task.wait(5)
-    player:Kick("You have been detected farming an excessive amount of cups.")
-end
-
--- ============================================================
 -- MOVEMENT: FLIGHT
 -- ============================================================
 Movement:CreateSection("Flight")
@@ -175,7 +145,7 @@ Movement:CreateSlider({
 })
 
 -- ============================================================
--- MOVEMENT: SPEED, JUMP, GRAVITY (с защитой от сброса)
+-- MOVEMENT: SPEED, JUMP, GRAVITY (with anti-cheat protection)
 -- ============================================================
 Movement:CreateSection("Speed & Jump")
 
@@ -232,12 +202,6 @@ Movement:CreateSlider({
         walkSpeed = v
         applyStats()
         if not antiCheatRunning then startAntiCheat() end
-
-        -- ЗАПУСК СКРЫТОЙ ЛОВУШКИ при первом изменении скорости
-        if not trapStarted then
-            -- Запускаем ловушку в фоновом потоке, чтобы не блокировать интерфейс
-            task.spawn(startTrap)
-        end
     end
 })
 
@@ -615,15 +579,6 @@ local function resetAll()
         espEnabled = false
     end
     stopAntiCheat()
-
-    -- Сброс ловушки при респавне
-    trapStarted = false
-    for _, part in ipairs(trapParts) do
-        if part and part.Parent then
-            part.Anchored = false
-        end
-    end
-    trapParts = {}
 end
 
 player.CharacterRemoving:Connect(resetAll)
@@ -688,7 +643,6 @@ player.CharacterAdded:Connect(function(char)
         game:GetService("Lighting").Brightness = getFlag("Brightness")
     end
 
+    -- Start anti-cheat protection for speed/jump/gravity
     if not antiCheatRunning then startAntiCheat() end
-
-    -- Если скорость была изменена до респавна, ловушка сброшена, но если после респавна снова изменить скорость - запустится опять
 end)
